@@ -1,69 +1,209 @@
-import Image from "next/image";
+"use client";
+
+import { useCallback, useState } from "react";
+import { TaskForm } from "@/components/TaskForm";
+import { TaskList } from "@/components/TaskList";
+import { TaskSearch } from "@/components/TaskSearch";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  ToastViewport,
+  type ToastMessage,
+  type ToastVariant,
+} from "@/components/ToastViewport";
+import type { Priority, Task } from "@/components/types";
+import { useLocalStorage } from "@/components/useLocalStorage";
+
+const errorMessage = "Error: Could not complete the task action.";
+
+type TaskFilter = "all" | "active" | "completed";
+
+const filters: { id: TaskFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "completed", label: "Completed" },
+];
 
 export default function Home() {
+  const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
+  const [filter, setFilter] = useState<TaskFilter>("all");
+  const [normalizedQuery, setNormalizedQuery] = useState("");
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [enteringIds, setEnteringIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+
+  const markEntered = useCallback((id: string) => {
+    setEnteringIds((current) => {
+      if (!current.has(id)) return current;
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+  }, []);
+
+  const showToast = useCallback((message: string, variant: ToastVariant) => {
+    setToasts((current) => [
+      ...current,
+      {
+        id: `toast-${Date.now()}-${current.length}`,
+        message,
+        variant,
+      },
+    ]);
+  }, []);
+
+  const handleQueryChange = useCallback((next: string) => {
+    setNormalizedQuery((current) => (current === next ? current : next));
+  }, []);
+
+  const visibleTasks = tasks.filter((task) => {
+    if (filter === "active" && task.completed) return false;
+    if (filter === "completed" && !task.completed) return false;
+    if (
+      normalizedQuery &&
+      !task.title.toLowerCase().includes(normalizedQuery)
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  const addTask = useCallback(
+    (title: string, priority: Priority, dueDate: string) => {
+      try {
+        const id = crypto.randomUUID();
+        setEnteringIds((current) => {
+          const next = new Set(current);
+          next.add(id);
+          return next;
+        });
+        setTasks((current) => [
+          ...current,
+          { id, title, completed: false, priority, dueDate },
+        ]);
+        showToast("Task added successfully!", "success");
+        return true;
+      } catch {
+        showToast(errorMessage, "error");
+        return false;
+      }
+    },
+    [showToast],
+  );
+
+  const updateTask = useCallback(
+    (id: string, title: string) => {
+      try {
+        let found = false;
+        setTasks((current) => {
+          const index = current.findIndex((task) => task.id === id);
+          found = index !== -1;
+          if (index === -1 || current[index].title === title) return current;
+          return current.map((task) =>
+            task.id === id ? { ...task, title } : task,
+          );
+        });
+        if (!found) throw new Error("Task not found");
+        showToast("Task updated successfully!", "success");
+      } catch {
+        showToast(errorMessage, "error");
+      }
+    },
+    [showToast],
+  );
+
+  const deleteTask = useCallback(
+    (id: string) => {
+      try {
+        let found = false;
+        setTasks((current) => {
+          const next = current.filter((task) => task.id !== id);
+          found = next.length !== current.length;
+          return found ? next : current;
+        });
+        if (!found) throw new Error("Task not found");
+        showToast("Task deleted successfully!", "success");
+      } catch {
+        showToast(errorMessage, "error");
+      }
+    },
+    [showToast],
+  );
+
+  const toggleTask = useCallback((id: string, completed: boolean) => {
+    setTasks((current) => {
+      const task = current.find((item) => item.id === id);
+      if (!task || task.completed === completed) return current;
+      return current.map((item) =>
+        item.id === id ? { ...item, completed } : item,
+      );
+    });
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-16 font-sans dark:bg-black">
+      <main className="flex w-full max-w-xl flex-col gap-8">
+        <header className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+              Tasks
+            </h1>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Add a task and it shows up in the list below.
+            </p>
+          </div>
+          <ThemeToggle />
+        </header>
+        <TaskForm onAdd={addTask} />
+        <div className="flex flex-col gap-4">
+          <TaskSearch onQueryChange={handleQueryChange} />
+          <div className="flex gap-2" role="group" aria-label="Filter tasks">
+            {filters.map((item) => {
+              const selected = filter === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() =>
+                    setFilter((current) =>
+                      current === item.id ? current : item.id,
+                    )
+                  }
+                  className={`flex-1 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition active:scale-[0.98] motion-reduce:transform-none ${
+                    selected
+                      ? "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+          {tasks.length > 0 && visibleTasks.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+              {normalizedQuery
+                ? "No tasks match your search."
+                : "No tasks match this filter."}
+            </p>
+          ) : (
+            <TaskList
+              tasks={visibleTasks}
+              enteringIds={enteringIds}
+              onEntered={markEntered}
+              onUpdate={updateTask}
+              onDelete={deleteTask}
+              onToggleComplete={toggleTask}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          )}
         </div>
       </main>
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
