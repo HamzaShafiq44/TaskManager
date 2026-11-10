@@ -49,6 +49,7 @@ export const TaskItem = memo(function TaskItem({
   const editId = `edit-${task.id}`;
   const dueLabel = formatDueDate(task.dueDate);
   const overdue = isOverdue(task.dueDate) && !task.completed;
+  const dueToday = dueLabel === "Today" && !task.completed;
   const priorityLabel =
     priorities.find((option) => option.value === task.priority)?.label ??
     task.priority;
@@ -118,6 +119,15 @@ export const TaskItem = memo(function TaskItem({
     setIsEditing(false);
   }
 
+  function handleComplete(checked: boolean) {
+    if (!checked || task.completed) return;
+
+    const confirmed = window.confirm(
+      "Mark this task as complete? This can't be undone.",
+    );
+    if (confirmed) onToggleComplete(task.id, true);
+  }
+
   function handleDelete() {
     if (isRemoving || removedRef.current) return;
 
@@ -158,7 +168,13 @@ export const TaskItem = memo(function TaskItem({
   return (
     <li
       onTransitionEnd={handleTransitionEnd}
-      className={`rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition-[opacity,transform,box-shadow,border-color] duration-[250ms] ease-out hover:border-zinc-300 hover:shadow-md motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 ${motionClass} ${
+      className={`rounded-xl border border-zinc-200 bg-white p-3 shadow-sm transition-[opacity,transform,box-shadow,border-color] duration-[250ms] ease-out hover:border-zinc-300 hover:shadow-md motion-reduce:transform-none motion-reduce:opacity-100 motion-reduce:transition-none dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 ${
+        overdue
+          ? "border-l-4 border-l-red-500"
+          : dueToday
+            ? "border-l-4 border-l-amber-400"
+            : ""
+      } ${motionClass} ${
         isRemoving ? "pointer-events-none" : ""
       }`}
     >
@@ -167,8 +183,18 @@ export const TaskItem = memo(function TaskItem({
           id={checkboxId}
           type="checkbox"
           checked={task.completed}
-          onChange={(event) => onToggleComplete(task.id, event.target.checked)}
-          className="mt-1 size-4 shrink-0 cursor-pointer accent-zinc-900 transition hover:ring-2 hover:ring-zinc-300 active:scale-90 motion-reduce:transform-none dark:accent-zinc-100 dark:hover:ring-zinc-600"
+          onChange={(event) => handleComplete(event.target.checked)}
+          disabled={task.completed}
+          title={
+            task.completed
+              ? "Completed tasks can't be reopened."
+              : undefined
+          }
+          className={`mt-1 size-4 shrink-0 accent-zinc-900 transition hover:ring-2 hover:ring-zinc-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 active:scale-90 motion-reduce:transform-none dark:accent-zinc-100 dark:hover:ring-zinc-600 ${
+            task.completed
+              ? "cursor-not-allowed opacity-50"
+              : "cursor-pointer"
+          }`}
         />
         <label htmlFor={checkboxId} className="sr-only">
           {task.completed ? "Completed: " : "Mark complete: "}
@@ -180,7 +206,7 @@ export const TaskItem = memo(function TaskItem({
           >
             {priorityLabel}
           </span>
-          {isEditing ? (
+          {isEditing && !task.completed ? (
             <form
               onSubmit={handleSave}
               className="flex w-full min-w-0 flex-col gap-2 sm:flex-row"
@@ -192,13 +218,13 @@ export const TaskItem = memo(function TaskItem({
                 id={editId}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
-                className="h-10 min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-900 focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-zinc-100 dark:focus:ring-zinc-100/10"
+                className="h-10 min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-zinc-900 focus:ring-4 focus:ring-zinc-900/10 focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-zinc-100 dark:focus:ring-zinc-100/10 dark:focus-visible:ring-zinc-400"
                 autoFocus
               />
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="h-10 cursor-pointer rounded-lg bg-zinc-900 px-3 text-sm font-medium text-white transition hover:bg-zinc-700 active:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white dark:active:bg-zinc-200 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+                  className="h-10 cursor-pointer rounded-lg bg-zinc-900 px-3 text-sm font-medium text-white transition hover:bg-zinc-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 active:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white dark:active:bg-zinc-200 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
                   disabled={!draft.trim()}
                 >
                   Save
@@ -206,7 +232,7 @@ export const TaskItem = memo(function TaskItem({
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="h-10 cursor-pointer rounded-lg border border-zinc-200 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 active:bg-zinc-200 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
+                  className="h-10 cursor-pointer rounded-lg border border-zinc-200 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 active:bg-zinc-200 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
                 >
                   Cancel
                 </button>
@@ -215,8 +241,13 @@ export const TaskItem = memo(function TaskItem({
           ) : (
             <button
               type="button"
-              onClick={startEditing}
-              className="min-w-0 cursor-pointer rounded-md text-left transition hover:text-zinc-600 active:text-zinc-500 dark:hover:text-zinc-300 dark:active:text-zinc-400"
+              onClick={task.completed ? undefined : startEditing}
+              disabled={task.completed}
+              className={`min-w-0 rounded-md text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 ${
+                task.completed
+                  ? "cursor-not-allowed"
+                  : "cursor-pointer hover:text-zinc-600 active:text-zinc-500 dark:hover:text-zinc-300 dark:active:text-zinc-400"
+              }`}
             >
               <span className="sr-only">Edit task: </span>
               <h2
@@ -236,8 +267,10 @@ export const TaskItem = memo(function TaskItem({
             <p
               className={`text-sm ${
                 overdue
-                  ? "text-red-600 dark:text-red-400"
-                  : "text-zinc-500 dark:text-zinc-400"
+                  ? "rounded-md bg-red-50 px-2 py-1 font-medium text-red-700 dark:bg-red-950/60 dark:text-red-300"
+                  : dueToday
+                    ? "rounded-md bg-amber-50 px-2 py-1 font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-200"
+                    : "text-zinc-500 dark:text-zinc-400"
               }`}
             >
               {dueLabel}
@@ -249,7 +282,7 @@ export const TaskItem = memo(function TaskItem({
           onClick={handleDelete}
           disabled={isRemoving}
           aria-label={`Delete task: ${task.title}`}
-          className="shrink-0 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-700 hover:text-white active:bg-red-800 focus:ring-2 focus:ring-red-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-700 dark:hover:text-white dark:active:bg-red-800"
+          className="shrink-0 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-700 hover:text-white active:bg-red-800 focus:ring-2 focus:ring-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-700 dark:hover:text-white dark:active:bg-red-800"
         >
           Delete
         </button>

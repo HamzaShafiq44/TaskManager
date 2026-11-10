@@ -23,6 +23,12 @@ const filters: { id: TaskFilter; label: string }[] = [
   { id: "completed", label: "Completed" },
 ];
 
+const priorityOrder: Record<Priority, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
 export default function Home() {
   const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
   const [filter, setFilter] = useState<TaskFilter>("all");
@@ -60,7 +66,7 @@ export default function Home() {
     setNormalizedQuery((current) => (current === next ? current : next));
   }, []);
 
-  const visibleTasks = tasks.filter((task) => {
+  const filteredTasks = tasks.filter((task) => {
     if (filter === "active" && task.completed) return false;
     if (filter === "completed" && !task.completed) return false;
     if (
@@ -71,9 +77,22 @@ export default function Home() {
     }
     return true;
   });
+  const visibleTasks =
+    filter === "active"
+      ? [...filteredTasks].sort((a, b) => {
+          const dueDateOrder = (a.dueDate || "9999-12-31").localeCompare(
+            b.dueDate || "9999-12-31",
+          );
+          return dueDateOrder || priorityOrder[a.priority] - priorityOrder[b.priority];
+        })
+      : filteredTasks;
+  const activeCount = tasks.filter((task) => !task.completed).length;
+  const completedCount = tasks.length - activeCount;
 
   const addTask = useCallback(
     (title: string, priority: Priority, dueDate: string) => {
+      if (!dueDate) return false;
+
       try {
         const id = crypto.randomUUID();
         setEnteringIds((current) => {
@@ -135,11 +154,13 @@ export default function Home() {
   );
 
   const toggleTask = useCallback((id: string, completed: boolean) => {
+    if (!completed) return;
+
     setTasks((current) => {
       const task = current.find((item) => item.id === id);
-      if (!task || task.completed === completed) return current;
+      if (!task || task.completed) return current;
       return current.map((item) =>
-        item.id === id ? { ...item, completed } : item,
+        item.id === id ? { ...item, completed: true } : item,
       );
     });
   }, []);
@@ -159,8 +180,26 @@ export default function Home() {
           <ThemeToggle />
         </header>
         <TaskForm onAdd={addTask} />
-        <div className="flex flex-col gap-4">
+        <section
+          aria-label="Task list"
+          className="flex flex-col gap-4"
+        >
           <TaskSearch onQueryChange={handleQueryChange} />
+          <p
+            role="status"
+            aria-live="polite"
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+          >
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+              {activeCount} active
+            </span>
+            <span className="mx-2 text-zinc-400" aria-hidden="true">
+              ·
+            </span>
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+              {completedCount} completed
+            </span>
+          </p>
           <div className="flex gap-2" role="group" aria-label="Filter tasks">
             {filters.map((item) => {
               const selected = filter === item.id;
@@ -174,7 +213,7 @@ export default function Home() {
                       current === item.id ? current : item.id,
                     )
                   }
-                  className={`flex-1 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition active:scale-[0.98] motion-reduce:transform-none ${
+                  className={`flex-1 cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 active:scale-[0.98] motion-reduce:transform-none ${
                     selected
                       ? "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
                       : "border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
@@ -189,7 +228,9 @@ export default function Home() {
             <p className="rounded-xl border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
               {normalizedQuery
                 ? "No tasks match your search."
-                : "No tasks match this filter."}
+                : filter === "active"
+                  ? "No active tasks. Add one above to get started."
+                  : "No completed tasks yet. Check off a task when you're done."}
             </p>
           ) : (
             <TaskList
@@ -201,7 +242,7 @@ export default function Home() {
               onToggleComplete={toggleTask}
             />
           )}
-        </div>
+        </section>
       </main>
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>

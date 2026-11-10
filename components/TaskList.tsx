@@ -24,7 +24,7 @@ export function TaskList({
   }
 
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="flex flex-col gap-2">
       {tasks.map((task) => (
         <TaskItem
           key={task.id}
@@ -39,4 +39,3 @@ export function TaskList({
     </ul>
   );
 }
-
