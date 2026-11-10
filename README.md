@@ -1,24 +1,25 @@
 # TaskManager
 
-A polished task manager built with Next.js, TypeScript, and Tailwind CSS. Add, complete, search, and delete tasks with smooth animations, inline validation, and clear feedback. Built to practice AI-assisted development with Cursor.
+A polished task manager built with Next.js, TypeScript, and Tailwind CSS. Create tasks with required deadlines, set priorities, and keep track of work with search, filters, and clear progress feedback. Tasks and theme preferences are saved in the browser.
 
 ## Features
 
-- **Add tasks** with inline validation (required, max 100 characters) and a live character counter
-- **Mark tasks complete** with a checkbox and strikethrough styling
-- **Delete tasks** with a confirmation dialog before removal
-- **Search tasks** with a debounced input
-- **Animations**: fade-in for new tasks, slide-out for deleted tasks, and hover effects with reduced-motion support
-- **Helpful feedback**: loading states, success messages, and friendly empty states
-- **Performance optimizations** using `React.memo`, `useCallback`, and lazy loading
-- **Accessible** markup with semantic HTML, ARIA attributes, and keyboard-friendly controls
+- **Create tasks** with a title, priority, and required deadline; past dates are not allowed
+- **Complete tasks permanently** with confirmation; completed tasks cannot be reopened or edited
+- **Delete tasks** with a confirmation dialog; completed tasks can still be deleted
+- **Track progress** with active and completed task counts and All, Active, and Completed filters
+- **Prioritize active work** by deadline, then priority
+- **Highlight deadlines**, including tasks due today and overdue tasks
+- **Search tasks** by title with a debounced input
+- **Save tasks and theme preferences** in browser local storage
+- **Accessible interactions** with inline validation, ARIA attributes, keyboard focus styling, and reduced-motion support
+- **Animated feedback** when adding and deleting tasks, along with success messages and contextual empty states
 
 ## Tech Stack
 
 - [Next.js](https://nextjs.org/) / React
 - TypeScript
 - Tailwind CSS
-- Vitest and React Testing Library (for tests)
 - Built with [Cursor](https://cursor.com/) (AI-assisted development)
 
 ## Installation
@@ -50,20 +51,20 @@ A polished task manager built with Next.js, TypeScript, and Tailwind CSS. Add, c
 | --- | --- |
 | `npm run build` | Create a production build |
 | `npm start` | Run the production build |
-| `npm test` | Run the automated tests |
 | `npm run lint` | Check code style |
 
 ## Usage
 
-1. **Add a task**: type in the form at the top of the page and press **Add**. Empty tasks and tasks over 100 characters show an inline error.
-2. **Complete a task**: check the box on a task card. The text is struck through. Uncheck it to restore it.
-3. **Search**: type in the search box to filter tasks by title.
-4. **Delete a task**: click **Delete** on a card and confirm in the dialog. Cancel keeps the task.
-5. **Empty states**: when there are no tasks, or none match your search, the app shows a message explaining what to do next.
+1. **Add a task**: enter a title, choose a priority and a deadline that is today or later, then press **Add task**.
+2. **Complete a task**: check its box and confirm. Completed tasks are permanent and cannot be reopened or edited.
+3. **Review tasks**: use the **All**, **Active**, and **Completed** filters. Active tasks are sorted by nearest deadline, with higher-priority tasks first when deadlines match.
+4. **Search**: type in the search box to filter tasks by title.
+5. **Delete a task**: click **Delete** on a card and confirm in the dialog. Cancel keeps the task.
+6. **Keep your data**: tasks and theme preferences are stored in this browser and remain available after reloading the page.
 
 ## Environment Variables
 
-This app runs entirely in the browser and doesn't need any environment variables or API keys.
+This app runs without a backend and doesn't need any environment variables or API keys. Task data and theme preferences are stored locally in the browser.
 
 If you add a backend or external API later, create a `.env.local` file in the project root and never commit it:
 
@@ -75,11 +76,10 @@ NEXT_PUBLIC_API_URL=https://api.example.com
 ## Project Structure
 
 ```
-src/
-├── app/            # Main page and layout
-├── components/     # TaskForm, TaskList, TaskItem, EmptyState
-├── hooks/          # useDebounce and other custom hooks
-└── types/          # Shared TypeScript types
+app/                # Main page, layout, and global styles
+components/         # Task form, list, items, search, and shared UI
+hooks/              # Custom React hooks
+lib/                # Shared application utilities
 ```
 
 ## Author
