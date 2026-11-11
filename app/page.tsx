@@ -92,6 +92,17 @@ export default function Home() {
   const addTask = useCallback(
     (title: string, priority: Priority, dueDate: string) => {
       if (!dueDate) return false;
+      const normalizedTitle = title.trim().toLowerCase();
+      const alreadyExists = tasks.some(
+        (task) =>
+          task.title.trim().toLowerCase() === normalizedTitle &&
+          task.priority === priority &&
+          task.dueDate === dueDate,
+      );
+      if (alreadyExists) {
+        showToast("Task already exists.", "error");
+        return false;
+      }
 
       try {
         const id = crypto.randomUUID();
@@ -111,7 +122,7 @@ export default function Home() {
         return false;
       }
     },
-    [showToast],
+    [setTasks, showToast, tasks],
   );
 
   const updateTask = useCallback(

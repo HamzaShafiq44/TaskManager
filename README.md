@@ -4,7 +4,7 @@ A polished task manager built with Next.js, TypeScript, and Tailwind CSS. Create
 
 ## Features
 
-- **Create tasks** with a title, priority, and required deadline; past dates are not allowed
+- **Create tasks** with a title, priority, and required deadline; past dates are not allowed, and duplicate title/priority/deadline combinations are rejected
 - **Complete tasks permanently** with confirmation; completed tasks cannot be reopened or edited
 - **Delete tasks** with a confirmation dialog; completed tasks can still be deleted
 - **Track progress** with active and completed task counts and All, Active, and Completed filters
@@ -55,7 +55,7 @@ A polished task manager built with Next.js, TypeScript, and Tailwind CSS. Create
 
 ## Usage
 
-1. **Add a task**: enter a title, choose a priority and a deadline that is today or later, then press **Add task**.
+1. **Add a task**: enter a title, choose a priority and a deadline that is today or later, then press **Add task**. A task with the same title (ignoring letter case), priority, and deadline cannot be added twice.
 2. **Complete a task**: check its box and confirm. Completed tasks are permanent and cannot be reopened or edited.
 3. **Review tasks**: use the **All**, **Active**, and **Completed** filters. Active tasks are sorted by nearest deadline, with higher-priority tasks first when deadlines match.
 4. **Search**: type in the search box to filter tasks by title.
